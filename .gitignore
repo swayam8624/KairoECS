@@ -1,0 +1,4 @@
+/build/
+/build-*/
+/_deps/
+/.DS_Store

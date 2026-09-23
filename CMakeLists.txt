@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
 option(KAIRO_ECS_BUILD_TESTS "Build KairoECS tests" ${PROJECT_IS_TOP_LEVEL})
+option(KAIRO_ECS_BUILD_BENCHMARK "Build KairoECS deterministic benchmark" ${PROJECT_IS_TOP_LEVEL})
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
@@ -28,4 +29,10 @@ if(KAIRO_ECS_BUILD_TESTS)
     add_executable(KairoECSTests tests/ECSTests.cpp)
     target_link_libraries(KairoECSTests PRIVATE KairoECS Catch2::Catch2WithMain)
     add_test(NAME KairoECSTests COMMAND KairoECSTests)
+endif()
+
+
+if(KAIRO_ECS_BUILD_BENCHMARK)
+    add_executable(KairoECSBenchmark benchmarks/ECSBenchmark.cpp)
+    target_link_libraries(KairoECSBenchmark PRIVATE KairoECS)
 endif()

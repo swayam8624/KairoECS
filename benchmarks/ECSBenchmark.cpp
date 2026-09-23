@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <string>
 #include <vector>
 
 import Kairo.ECS;

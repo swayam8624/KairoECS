@@ -93,6 +93,29 @@ export namespace kairo::ecs
             return m_LiveEntityCount;
         }
 
+        /// Reserve entity-slot bookkeeping for known runtime population sizes.
+        /// This changes capacity only; stable entity indices/generations are
+        /// still allocated exclusively by Create().
+        void ReserveEntities(std::size_t capacity)
+        {
+            m_Generations.reserve(capacity);
+            m_Alive.reserve(capacity);
+            m_FreeIndices.reserve(capacity);
+        }
+
+        template<typename Component>
+        void Reserve(std::size_t capacity)
+        {
+            FindOrCreatePool<Component>().Set.Reserve(capacity);
+        }
+
+        template<typename Component>
+        [[nodiscard]] std::size_t Count() const noexcept
+        {
+            const Pool<Component>* pool = FindPool<Component>();
+            return pool == nullptr ? 0u : pool->Set.Size();
+        }
+
         template<typename Component, typename... Arguments>
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
@@ -169,24 +192,92 @@ export namespace kairo::ecs
             }
         }
 
-        /// Two-component join using the first component's dense storage. This
-        /// avoids an entity-wide scan and is deterministic for one registry
-        /// state. The same structural-mutation precondition as Each applies.
+        /// Two-component join scans the smaller dense pool and resolves the
+        /// other component through O(1) sparse lookup. This preserves callback
+        /// argument order while avoiding pathological scans when one component
+        /// is much rarer than the other.
         template<typename First, typename Second, typename Callable>
             requires std::invocable<Callable&, Entity, First&, Second&>
         void Each(Callable&& callable)
         {
-            Pool<First>* primary = FindPool<First>();
-            Pool<Second>* secondary = FindPool<Second>();
-            if (primary == nullptr || secondary == nullptr) return;
-            const std::size_t count = primary->Set.Size();
-            const auto& entities = primary->Set.Entities();
-            auto& components = primary->Set.Components();
-            for (std::size_t index = 0u; index < count; ++index)
+            Pool<First>* first = FindPool<First>();
+            Pool<Second>* second = FindPool<Second>();
+            if (first == nullptr || second == nullptr) return;
+
+            if (first->Set.Size() <= second->Set.Size())
+            {
+                const auto& entities = first->Set.Entities();
+                auto& components = first->Set.Components();
+                for (std::size_t index = 0u; index < first->Set.Size(); ++index)
+                {
+                    const Entity entity = entities[index];
+                    Second* other = IsAlive(entity) ? second->Set.TryGet(entity) : nullptr;
+                    if (other != nullptr) std::invoke(callable, entity, components[index], *other);
+                }
+                return;
+            }
+
+            const auto& entities = second->Set.Entities();
+            auto& components = second->Set.Components();
+            for (std::size_t index = 0u; index < second->Set.Size(); ++index)
             {
                 const Entity entity = entities[index];
-                Second* other = IsAlive(entity) ? secondary->Set.TryGet(entity) : nullptr;
-                if (other != nullptr) std::invoke(callable, entity, components[index], *other);
+                First* other = IsAlive(entity) ? first->Set.TryGet(entity) : nullptr;
+                if (other != nullptr) std::invoke(callable, entity, *other, components[index]);
+            }
+        }
+
+        /// Three-component join follows the same smallest-pool rule. Runtime
+        /// systems commonly require transform + velocity + domain state; making
+        /// this a native query avoids nesting lookups or scanning all entities.
+        template<typename First, typename Second, typename Third, typename Callable>
+            requires std::invocable<Callable&, Entity, First&, Second&, Third&>
+        void Each(Callable&& callable)
+        {
+            Pool<First>* first = FindPool<First>();
+            Pool<Second>* second = FindPool<Second>();
+            Pool<Third>* third = FindPool<Third>();
+            if (first == nullptr || second == nullptr || third == nullptr) return;
+
+            if (first->Set.Size() <= second->Set.Size() && first->Set.Size() <= third->Set.Size())
+            {
+                const auto& entities = first->Set.Entities();
+                auto& components = first->Set.Components();
+                for (std::size_t index = 0u; index < first->Set.Size(); ++index)
+                {
+                    const Entity entity = entities[index];
+                    Second* b = IsAlive(entity) ? second->Set.TryGet(entity) : nullptr;
+                    Third* c = IsAlive(entity) ? third->Set.TryGet(entity) : nullptr;
+                    if (b != nullptr && c != nullptr)
+                        std::invoke(callable, entity, components[index], *b, *c);
+                }
+                return;
+            }
+
+            if (second->Set.Size() <= third->Set.Size())
+            {
+                const auto& entities = second->Set.Entities();
+                auto& components = second->Set.Components();
+                for (std::size_t index = 0u; index < second->Set.Size(); ++index)
+                {
+                    const Entity entity = entities[index];
+                    First* a = IsAlive(entity) ? first->Set.TryGet(entity) : nullptr;
+                    Third* c = IsAlive(entity) ? third->Set.TryGet(entity) : nullptr;
+                    if (a != nullptr && c != nullptr)
+                        std::invoke(callable, entity, *a, components[index], *c);
+                }
+                return;
+            }
+
+            const auto& entities = third->Set.Entities();
+            auto& components = third->Set.Components();
+            for (std::size_t index = 0u; index < third->Set.Size(); ++index)
+            {
+                const Entity entity = entities[index];
+                First* a = IsAlive(entity) ? first->Set.TryGet(entity) : nullptr;
+                Second* b = IsAlive(entity) ? second->Set.TryGet(entity) : nullptr;
+                if (a != nullptr && b != nullptr)
+                    std::invoke(callable, entity, *a, *b, components[index]);
             }
         }
 

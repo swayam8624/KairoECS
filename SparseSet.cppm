@@ -90,6 +90,15 @@ export namespace kairo::ecs
             return true;
         }
 
+        /// Reserves dense component/entity storage. Sparse lookup growth remains
+        /// entity-index driven, so reserving components never changes handle
+        /// validity or allocates a speculative sparse table.
+        void Reserve(std::size_t capacity)
+        {
+            m_Entities.reserve(capacity);
+            m_Components.reserve(capacity);
+        }
+
         [[nodiscard]] std::size_t Size() const noexcept { return m_Components.size(); }
         [[nodiscard]] bool Empty() const noexcept { return m_Components.empty(); }
         [[nodiscard]] const std::vector<Entity>& Entities() const noexcept { return m_Entities; }

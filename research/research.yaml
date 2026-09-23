@@ -1,0 +1,44 @@
+id: R2
+name: MORPH-ECS
+repo: KairoECS
+stage: hypothesis_locked
+engineering_dependency:
+  required_score: 80
+  status: source_complete
+problem: heterogeneous runtime workloads favor different ECS storage layouts
+hypothesis: bounded online workload classification with hysteresis can select/migrate storage layouts with lower total mixed-workload cost than fixed sparse or archetype layouts
+falsification:
+  - adaptive policy loses to both fixed baselines on representative mixed workloads
+  - migration overhead removes measured iteration benefit
+  - policy thrashes under oscillating workloads
+baselines:
+  - kairo_sparse_v1
+  - fixed_archetype_reference
+  - fixed_hybrid_offline
+  - oracle_phase_best
+workloads:
+  normal: [stable_motion, gameplay_iteration, rare_component_join]
+  structural: [spawn_burst, destroy_burst, component_churn, streamed_zone]
+  mixed: [stable_then_churn, crowd_plus_streaming, physics_plus_spawn]
+  adversarial: [oscillating_regime, tiny_world, rare_component_extreme]
+scales: [1000, 10000, 50000, 100000]
+metrics:
+  - query_ns
+  - structural_op_ns
+  - p50_frame_ns
+  - p95_frame_ns
+  - p99_frame_ns
+  - migration_ns
+  - bytes_moved
+  - peak_bytes
+  - policy_switches
+required_artifacts:
+  - raw_json
+  - summary_csv
+  - architecture_diagram
+  - policy_timeline
+  - scaling_plots
+  - ablations
+  - failure_cases
+  - reproducibility_manifest
+claim_status: unproven

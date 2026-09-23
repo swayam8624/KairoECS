@@ -94,3 +94,64 @@ TEST_CASE("Destroy removes every attached component and rejects stale mutation",
     CHECK_FALSE(registry.Has<Velocity>(entity));
     REQUIRE_THROWS_AS(registry.Emplace<Health>(entity, 1), std::invalid_argument);
 }
+
+
+TEST_CASE("Registry reserves capacity and joins three components through the rarest pool", "[KairoECS][Iteration][Runtime]")
+{
+    Registry registry;
+    registry.ReserveEntities(256u);
+    registry.Reserve<Position>(256u);
+    registry.Reserve<Velocity>(256u);
+    registry.Reserve<Health>(8u);
+
+    std::vector<Entity> entities;
+    for (int index = 0; index < 128; ++index)
+    {
+        const Entity entity = registry.Create();
+        entities.push_back(entity);
+        registry.Emplace<Position>(entity, index, index * 2);
+        if ((index % 2) == 0)
+            registry.Emplace<Velocity>(entity, 1, -1);
+        if ((index % 16) == 0)
+            registry.Emplace<Health>(entity, 100);
+    }
+
+    CHECK(registry.Count<Position>() == 128u);
+    CHECK(registry.Count<Velocity>() == 64u);
+    CHECK(registry.Count<Health>() == 8u);
+
+    std::size_t joined = 0u;
+    registry.Each<Position, Velocity, Health>(
+        [&joined](Entity, Position& position, Velocity& velocity, Health& health)
+        {
+            position.X += velocity.X;
+            health.Value -= 1;
+            ++joined;
+        });
+
+    CHECK(joined == 8u);
+    CHECK(registry.Get<Position>(entities.front()).X == 1);
+    CHECK(registry.Get<Health>(entities.front()).Value == 99);
+}
+
+TEST_CASE("Two component joins are symmetric in population size but stable in callback order", "[KairoECS][Iteration]")
+{
+    Registry registry;
+    const Entity commonA = registry.Create();
+    const Entity commonB = registry.Create();
+    registry.Emplace<Position>(commonA, 1, 2);
+    registry.Emplace<Position>(commonB, 3, 4);
+    registry.Emplace<Velocity>(commonB, 5, 6);
+
+    std::size_t visited = 0u;
+    registry.Each<Position, Velocity>(
+        [&visited](Entity entity, Position& position, Velocity& velocity)
+        {
+            CHECK(entity.IsValid());
+            position.X += velocity.X;
+            ++visited;
+        });
+
+    CHECK(visited == 1u);
+    CHECK(registry.Get<Position>(commonB).X == 8);
+}

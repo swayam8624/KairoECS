@@ -17,6 +17,7 @@ add_library(KairoECS)
 add_library(Kairo::ECS ALIAS KairoECS)
 target_sources(KairoECS PUBLIC FILE_SET CXX_MODULES BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} FILES
     Entity.cppm SparseSet.cppm Registry.cppm KairoECS.cppm)
+set_property(TARGET KairoECS PROPERTY COMPILE_WARNING_AS_ERROR ON)
 
 if(KAIRO_ECS_BUILD_TESTS)
     include(FetchContent)
@@ -28,6 +29,10 @@ if(KAIRO_ECS_BUILD_TESTS)
     FetchContent_MakeAvailable(Catch2)
     add_executable(KairoECSTests tests/ECSTests.cpp)
     target_link_libraries(KairoECSTests PRIVATE KairoECS Catch2::Catch2WithMain)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(KairoECSTests PRIVATE -Wno-c2y-extensions)
+    endif()
+    set_property(TARGET KairoECSTests PROPERTY COMPILE_WARNING_AS_ERROR ON)
     add_test(NAME KairoECSTests COMMAND KairoECSTests)
 endif()
 

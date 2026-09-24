@@ -1,0 +1,31 @@
+schema: kairo.research-track.v1
+track: R2
+title: MORPH-ECS
+state: hypothesis
+problem: One fixed ECS storage/query strategy performs poorly when entity churn, component density and query locality change over time.
+hypothesis: Runtime telemetry can choose between sparse and dense/archetype-like layouts with lower total cost than a fixed representation after migration overhead.
+baselines:
+  - current_sparse_layout
+  - fixed_dense_layout
+  - fixed_hybrid
+  - offline_oracle
+workloads:
+  - stable_dense_gameplay
+  - high_spawn_despawn
+  - phase_changing_scene
+  - sparse_editor_world
+metrics:
+  - query_latency_p95
+  - mutation_latency_p95
+  - memory_bytes
+  - migration_cost_ms
+  - total_work_ms
+ablations:
+  - no_churn_signal
+  - no_query_signal
+  - no_migration_hysteresis
+failure_cases:
+  - adversarial_phase_flips
+  - tiny_worlds
+  - memory_constrained_worlds
+falsification: Reject if adaptation cannot beat the best fixed baseline after migration cost on phase-changing workloads.

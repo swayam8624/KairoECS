@@ -1,23 +1,19 @@
-# KairoECS Status
+# KairoECS v1 Status
 
-Wave: B — runtime-infrastructure completion  
-Frozen v1 target: 80/100  
-Source gate: complete  
-Execution gate: unit tests + deterministic benchmark + KairoGameEngine Scene/ECS bridge test
+**Target: 95%. Current completion claim: UNVERIFIED.**
 
-## Frozen v1 scope
+The earlier percentage claim has been retracted. A frozen scope or a populated
+`STATUS.yaml` is not evidence that this repository builds, runs, or satisfies
+its integration contract.
 
-KairoECS v1 is a generational sparse-set runtime store with dense component iteration, bounded structural journaling, capacity reservation, one/two/three-component queries and deterministic behavior. Persistent scene serialization remains in EngineCore. Adaptive archetype migration is research work, not required for v1.
+Current rules:
 
-## 80 exit evidence
+- `target_score: 95` is a target only.
+- `completion_score: unverified` remains until exact-head acceptance executes.
+- source/test failures block completion regardless of documentation state.
+- platform-gated behavior is not inferred from another host.
+- post-v1 exclusions may bound scope, but they cannot hide missing v1 behavior.
 
-- Stale generation handles are rejected and destroyed entities remove all components.
-- Runtime systems can reserve entity/component capacity before bulk extraction.
-- Two- and three-component joins scan the smallest participating dense pool while preserving callback type order.
-- A machine-readable 100k-entity benchmark target exercises a representative rare-component query.
-- KairoGameEngine owns an explicit one-way Scene → ECS extraction bridge retaining stable authored IDs beside process-local ECS handles.
-- Authoring changes enter runtime storage only through an explicit refresh boundary.
-
-## Post-80 direction
-
-The MORPH-ECS research track compares sparse, archetype and adaptive layouts. It must not destabilize the v1 sparse-set API before experiments establish a benefit.
+Use the repository's real build/test gate and the KairoGameEngine portfolio
+acceptance runner. Do not cite this repository as 95% complete until the
+accepted exact-head evidence matches the current revision.

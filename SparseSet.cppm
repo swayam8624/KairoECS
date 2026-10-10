@@ -34,6 +34,12 @@ export namespace kairo::ecs
             if (!entity.IsValid()) throw std::invalid_argument("Cannot attach a component to an invalid entity.");
             if (Contains(entity)) throw std::invalid_argument("Entity already owns this component type.");
             EnsureSparseIndex(entity.Index);
+            // Contains() compares generations. An occupied slot from a
+            // different generation would otherwise bypass that check and
+            // overwrite the sparse lookup, leaving a permanently unreachable
+            // dense component behind. Require explicit removal before reuse.
+            if (m_Sparse[entity.Index] != Missing)
+                throw std::invalid_argument("SparseSet entity index is still occupied by another generation.");
             const std::uint32_t dense = CheckedDenseIndex();
             m_Entities.push_back(entity);
             try

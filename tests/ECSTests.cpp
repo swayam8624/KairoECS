@@ -47,6 +47,29 @@ TEST_CASE("Sparse component storage validates ownership and removal", "[KairoECS
     REQUIRE_THROWS_AS(registry.Get<Position>(entity), std::out_of_range);
 }
 
+TEST_CASE("SparseSet rejects generations sharing an occupied sparse index", "[KairoECS][Components][Generation]")
+{
+    // Direct SparseSet consumers can construct generational handles without
+    // going through Registry. Replacing a live index without removal must not
+    // create a second dense entry that is no longer addressable.
+    SparseSet<Position> positions;
+    const Entity oldEntity{ 42u, 1u };
+    const Entity newEntity{ 42u, 2u };
+    positions.Emplace(oldEntity, 1, 2);
+
+    REQUIRE_THROWS_AS(positions.Emplace(newEntity, 3, 4), std::invalid_argument);
+    CHECK(positions.Size() == 1u);
+    CHECK(positions.Contains(oldEntity));
+    CHECK_FALSE(positions.Contains(newEntity));
+    CHECK(positions.Get(oldEntity).X == 1);
+
+    REQUIRE(positions.Remove(oldEntity));
+    REQUIRE(positions.Emplace(newEntity, 5, 6).Y == 6);
+    CHECK(positions.Size() == 1u);
+    CHECK_FALSE(positions.Contains(oldEntity));
+    CHECK(positions.Contains(newEntity));
+}
+
 TEST_CASE("Registry joins dense components and journals structural changes", "[KairoECS][Iteration][Journal]")
 {
     Registry registry(5u);

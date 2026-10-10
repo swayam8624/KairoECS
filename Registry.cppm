@@ -44,6 +44,9 @@ export namespace kairo::ecs
         /// whose generation cannot wrap, so stale handles never become valid.
         [[nodiscard]] Entity Create()
         {
+            // Reserve the journal entry before changing the alive set. An
+            // allocation failure must not leak an entity the caller never got.
+            ReserveJournalSlot();
             std::uint32_t index = Entity::InvalidIndex;
             if (!m_FreeIndices.empty())
             {
@@ -57,7 +60,15 @@ export namespace kairo::ecs
                     throw std::length_error("Registry reached its entity-index limit.");
                 index = static_cast<std::uint32_t>(m_Generations.size());
                 m_Generations.push_back(1u);
-                m_Alive.push_back(true);
+                try
+                {
+                    m_Alive.push_back(true);
+                }
+                catch (...)
+                {
+                    m_Generations.pop_back();
+                    throw;
+                }
             }
             ++m_LiveEntityCount;
             const Entity entity{ index, m_Generations[index] };
@@ -72,11 +83,19 @@ export namespace kairo::ecs
         bool Destroy(Entity entity)
         {
             if (!IsAlive(entity)) return false;
+            ReserveJournalSlot();
+            const bool recyclable =
+                m_Generations[entity.Index] != std::numeric_limits<std::uint32_t>::max();
+            if (recyclable)
+                m_FreeIndices.reserve(m_FreeIndices.size() + 1u);
+            // From this point onward, journal append and index recycling are
+            // allocation-free. Do not invalidate a live handle first and then
+            // risk throwing before its generation is advanced/recycled.
             for (const auto& storage : m_Storages) (void)storage->Remove(entity);
             m_Alive[entity.Index] = false;
             --m_LiveEntityCount;
             AppendChange(StructuralChangeKind::Destroyed, entity);
-            if (m_Generations[entity.Index] == std::numeric_limits<std::uint32_t>::max()) return true;
+            if (!recyclable) return true;
             ++m_Generations[entity.Index];
             m_FreeIndices.push_back(entity.Index);
             return true;
@@ -120,6 +139,7 @@ export namespace kairo::ecs
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
             RequireAlive(entity);
+            ReserveJournalSlot();
             Component& component = FindOrCreatePool<Component>().Set.Emplace(entity,
                 std::forward<Arguments>(arguments)...);
             AppendChange(StructuralChangeKind::ComponentAdded, entity);
@@ -168,7 +188,9 @@ export namespace kairo::ecs
         {
             if (!IsAlive(entity)) return false;
             Pool<Component>* pool = FindPool<Component>();
-            if (pool == nullptr || !pool->Set.Remove(entity)) return false;
+            if (pool == nullptr || !pool->Set.Contains(entity)) return false;
+            ReserveJournalSlot();
+            if (!pool->Set.Remove(entity)) return false;
             AppendChange(StructuralChangeKind::ComponentRemoved, entity);
             return true;
         }
@@ -311,6 +333,15 @@ export namespace kairo::ecs
         void RequireAlive(Entity entity) const
         {
             if (!IsAlive(entity)) throw std::invalid_argument("ECS operation requires a live entity.");
+        }
+
+        void ReserveJournalSlot()
+        {
+            // Reserve before each structural mutation, not afterward. When the
+            // bounded journal is full, AppendChange reuses existing capacity.
+            if (m_Changes.size() < m_JournalCapacity &&
+                m_Changes.size() == m_Changes.capacity())
+                m_Changes.reserve(m_Changes.size() + 1u);
         }
 
         void AppendChange(StructuralChangeKind kind, Entity entity)

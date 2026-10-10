@@ -106,6 +106,38 @@ TEST_CASE("Registry joins dense components and journals structural changes", "[K
     CHECK(registry.StructuralChanges().empty());
 }
 
+TEST_CASE("Registry preallocated bounded journal preserves lifecycle and event order",
+    "[KairoECS][Lifecycle][Journal]")
+{
+    Registry registry(2u);
+    const Entity first = registry.Create();
+    registry.Emplace<Position>(first, 7, 8);
+    REQUIRE(registry.Remove<Position>(first));
+    REQUIRE(registry.Destroy(first));
+    REQUIRE_FALSE(registry.IsAlive(first));
+
+    const Entity recycled = registry.Create();
+    REQUIRE(recycled.Index == first.Index);
+    REQUIRE(recycled.Generation > first.Generation);
+    REQUIRE(registry.IsAlive(recycled));
+    REQUIRE(registry.EntityCount() == 1u);
+
+    const auto changes = registry.StructuralChanges();
+    REQUIRE(changes.size() == 2u);
+    REQUIRE(changes[0u].Sequence == 4u);
+    REQUIRE(changes[0u].Kind == StructuralChangeKind::Destroyed);
+    REQUIRE(changes[0u].Subject == first);
+    REQUIRE(changes[1u].Sequence == 5u);
+    REQUIRE(changes[1u].Kind == StructuralChangeKind::Created);
+    REQUIRE(changes[1u].Subject == recycled);
+
+    registry.ClearStructuralChanges();
+    registry.Emplace<Velocity>(recycled, 3, 5);
+    REQUIRE(registry.Get<Velocity>(recycled).Y == 5);
+    REQUIRE(registry.StructuralChanges().size() == 1u);
+    REQUIRE(registry.StructuralChanges().front().Sequence == 6u);
+}
+
 TEST_CASE("Destroy removes every attached component and rejects stale mutation", "[KairoECS][Lifecycle]")
 {
     Registry registry;

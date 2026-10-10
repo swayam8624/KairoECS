@@ -341,7 +341,15 @@ export namespace kairo::ecs
             // bounded journal is full, AppendChange reuses existing capacity.
             if (m_Changes.size() < m_JournalCapacity &&
                 m_Changes.size() == m_Changes.capacity())
-                m_Changes.reserve(m_Changes.size() + 1u);
+            {
+                // Grow geometrically to avoid turning the first several
+                // thousand entity operations into quadratic reallocations.
+                const std::size_t oldCapacity = m_Changes.capacity();
+                const std::size_t doubled = oldCapacity > m_JournalCapacity / 2u
+                    ? m_JournalCapacity : oldCapacity * 2u;
+                const std::size_t nextCapacity = doubled == 0u ? 1u : doubled;
+                m_Changes.reserve(nextCapacity);
+            }
         }
 
         void AppendChange(StructuralChangeKind kind, Entity entity)

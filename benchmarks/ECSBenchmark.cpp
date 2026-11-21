@@ -1,3 +1,5 @@
+// TEACHING BENCHMARK: This is a controlled single-process microbenchmark of Registry::Each<Position,Velocity,Active>, not a comparison with other ECS frameworks. Initialization and journal clearing occur before the timed 120 passes; the hot loop updates dense Position components only for entities also holding Velocity and Active. JSON reports count, iterations and visits/sec. Run repeated controlled trials with the same compiler, CPU and workload before drawing performance conclusions.
+
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

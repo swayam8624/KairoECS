@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// ECS identity contract: Entity is a process-local (index,generation) handle. Registry.cppm
+// allocates/recycles slots and SparseSet.cppm checks the complete handle before exposing components. Do
+// not persist the raw index as a cross-session scene ID.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 module;
 
 #include <cstdint>

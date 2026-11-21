@@ -1,5 +1,7 @@
 # KairoECS
 
+> **Learn this codebase:** Follow the [linked source reading order](docs/SOURCE_READING_ORDER.md) through entity generations, sparse/dense component storage, registry joins, and tests. KairoECS is MIT-licensed for reuse and further development; see [LICENSE](LICENSE).
+
 `KairoECS` is the data-oriented runtime-storage foundation for Kairo. It is a
 standalone C++23 module library: it has no windowing, renderer, physics, scene
 file, asset, or editor dependency.

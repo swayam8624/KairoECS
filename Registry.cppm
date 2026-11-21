@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// Entity and component ownership layer. This module imports Entity and SparseSet and handles
+// Create/Destroy, type-erased storage, multi-component iteration and the bounded structural journal.
+// Systems in KairoEngineCore and gameplay adapters consume the API without owning pool storage.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 module;
 
 #include <concepts>
@@ -42,6 +48,9 @@ export namespace kairo::ecs
 
         /// Output: a newly alive generational Entity. Task: recycle only slots
         /// whose generation cannot wrap, so stale handles never become valid.
+        /// API path: Registry::Create -> generation table/free-list -> journal.
+        /// An entity receives a fresh generation when a slot is reused, so
+        /// references from earlier lifetimes fail IsAlive instead of aliasing.
         [[nodiscard]] Entity Create()
         {
             // Reserve the journal entry before changing the alive set. An
@@ -80,6 +89,9 @@ export namespace kairo::ecs
         /// Task: remove all attached components before invalidating the slot.
         /// The final generation is retired instead of wrapping to preserve the
         /// stale-handle invariant for the process lifetime.
+        /// Remove every component before freeing this entity index. The max
+        /// uint32 generation is retired instead of wrapping. Destroy journals
+        /// the old Entity, which is useful for observers but not a snapshot.
         bool Destroy(Entity entity)
         {
             if (!IsAlive(entity)) return false;
@@ -101,6 +113,8 @@ export namespace kairo::ecs
             return true;
         }
 
+        /// Distinguish syntactic validity (Entity::IsValid) from runtime life:
+        /// the index must exist, the slot must be active, and generations match.
         [[nodiscard]] bool IsAlive(Entity entity) const noexcept
         {
             return entity.IsValid() && entity.Index < m_Generations.size() &&
@@ -136,6 +150,9 @@ export namespace kairo::ecs
         }
 
         template<typename Component, typename... Arguments>
+        /// Own a typed pool per component type. Reserve the structural journal
+        /// first; SparseSet::Emplace performs actual construction and returns a
+        /// borrowed reference. Record ComponentAdded only after success.
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
             RequireAlive(entity);
@@ -154,6 +171,9 @@ export namespace kairo::ecs
         }
 
         template<typename Component>
+        /// Borrow a component pointer only if both entity generation and typed
+        /// pool match. No owning copy is made; structural edits can invalidate
+        /// this pointer even when the registry remains alive.
         [[nodiscard]] Component* TryGet(Entity entity) noexcept
         {
             Pool<Component>* pool = FindPool<Component>();
@@ -184,6 +204,9 @@ export namespace kairo::ecs
         }
 
         template<typename Component>
+        /// Delegates to typed SparseSet swap-removal, then journals the change.
+        /// Returns false for a dead entity or missing component; callers must
+        /// not assume stable dense iteration order after successful removal.
         bool Remove(Entity entity)
         {
             if (!IsAlive(entity)) return false;
@@ -200,6 +223,9 @@ export namespace kairo::ecs
         /// this call, because those operations can reorder dense storage.
         template<typename Component, typename Callable>
             requires std::invocable<Callable&, Entity, Component&>
+        /// Single-component query walks its dense storage. Do not structurally
+        /// mutate the scanned pool from callback; use a deferred command list
+        /// to remove or create components after iteration finishes.
         void Each(Callable&& callable)
         {
             Pool<Component>* pool = FindPool<Component>();
@@ -303,6 +329,9 @@ export namespace kairo::ecs
             }
         }
 
+        /// Return a copy of the bounded mutation journal, not component values.
+        /// Oldest changes are evicted after capacity; this is not a reliable
+        /// authoritative undo log or full scene/replication snapshot.
         [[nodiscard]] std::vector<StructuralChange> StructuralChanges() const { return m_Changes; }
         void ClearStructuralChanges() noexcept { m_Changes.clear(); }
 
@@ -335,6 +364,9 @@ export namespace kairo::ecs
             if (!IsAlive(entity)) throw std::invalid_argument("ECS operation requires a live entity.");
         }
 
+        /// Allocate journal capacity before mutating entity/component state so
+        /// an allocation failure cannot leave a change unreported. AppendChange
+        /// uses the already-reserved capacity or evicts an old entry.
         void ReserveJournalSlot()
         {
             // Reserve before each structural mutation, not afterward. When the
@@ -352,6 +384,9 @@ export namespace kairo::ecs
             }
         }
 
+        /// Monotonic per-registry sequence numbers record structural events.
+        /// Eviction of the oldest item bounds memory; consumers must detect
+        /// missing history rather than treating it as lossless replication.
         void AppendChange(StructuralChangeKind kind, Entity entity)
         {
             if (m_Changes.size() == m_JournalCapacity) m_Changes.erase(m_Changes.begin());

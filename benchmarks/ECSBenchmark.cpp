@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// Performance study driver for entity/component operations. Interpret benchmark numbers together with
+// compiler flags, component density, warm-up and iteration pattern; verify correctness via
+// tests/ECSTests.cpp before optimizing.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

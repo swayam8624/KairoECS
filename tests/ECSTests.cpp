@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// Focused correctness tests for the public Kairo.ECS module. Compare each test against Entity
+// generation, SparseSet dense/sparse invariants and Registry structural operations; tests do not
+// replace end-to-end engine integration checks.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>

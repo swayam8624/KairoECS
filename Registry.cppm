@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// Entity and component ownership layer. This module imports Entity and SparseSet and handles
+// Create/Destroy, type-erased storage, multi-component iteration and the bounded structural journal.
+// Systems in KairoEngineCore and gameplay adapters consume the API without owning pool storage.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 module;
 
 #include <concepts>

@@ -1,3 +1,8 @@
+// TEACHING MAP — SparseSet.cppm
+// reused entity slot returning a stale component. Removal changes dense ordering via compaction.
+// Follow READING_ORDER.md for API relationships, calling modules, and tests.
+// These are explanatory annotations, not additional runtime behavior.
+
 module;
 
 #include <cstddef>

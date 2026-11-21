@@ -1,5 +1,7 @@
 # KairoECS
 
+**Study guide:** [ECS from first principles](docs/ECS_WALKTHROUGH.md) · [Complete source reading map](docs/SOURCE_READING_ORDER.md)
+
 `KairoECS` is the data-oriented runtime-storage foundation for Kairo. It is a
 standalone C++23 module library: it has no windowing, renderer, physics, scene
 file, asset, or editor dependency.

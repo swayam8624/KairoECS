@@ -1,7 +1,8 @@
 // TEACHING MAP — tests/ECSTests.cpp
-// c ECS API, not hidden internal allocations; running them is required to verify the assertions.
-// Follow READING_ORDER.md for API relationships, calling modules, and tests.
-// These are explanatory annotations, not additional runtime behavior.
+// Exercises Entity, SparseSet, and Registry contracts including generation changes,
+// component insertion/removal and iteration. Actual test execution remains necessary for
+// verification.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
 
 #include <catch2/catch_test_macros.hpp>
 

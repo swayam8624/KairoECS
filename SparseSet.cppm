@@ -27,6 +27,9 @@ export namespace kairo::ecs
     class SparseSet final
     {
     public:
+        /// Lookup contract: the sparse slot is only a hint to a dense index.
+        /// Comparing the *whole* Entity (including Generation) prevents stale
+        /// handles from resolving to recycled component storage. No allocation.
         [[nodiscard]] bool Contains(Entity entity) const noexcept
         {
             if (!entity.IsValid() || entity.Index >= m_Sparse.size()) return false;
@@ -35,6 +38,10 @@ export namespace kairo::ecs
         }
 
         template<typename... Arguments>
+        /// Allocate dense storage for one component. Fail on invalid/duplicate
+        /// handles or an occupied slot from another generation. The exception
+        /// cleanup keeps entity/component dense arrays aligned; the sparse
+        /// reverse mapping is written only after construction succeeds.
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
             if (!entity.IsValid()) throw std::invalid_argument("Cannot attach a component to an invalid entity.");
@@ -61,6 +68,9 @@ export namespace kairo::ecs
             return m_Components.back();
         }
 
+        /// Non-throwing optional access: null means no matching full handle.
+        /// The pointer is borrowed; insertion/reallocation or swap-removal can
+        /// invalidate it even while the Entity itself remains alive.
         [[nodiscard]] Component* TryGet(Entity entity) noexcept
         {
             return Contains(entity) ? &m_Components[m_Sparse[entity.Index]] : nullptr;
@@ -71,6 +81,8 @@ export namespace kairo::ecs
             return Contains(entity) ? &m_Components[m_Sparse[entity.Index]] : nullptr;
         }
 
+        /// Strict variant of TryGet: throws out_of_range on absent components.
+        /// Registry::Get also checks the entity's live generation first.
         Component& Get(Entity entity)
         {
             Component* component = TryGet(entity);
@@ -85,6 +97,11 @@ export namespace kairo::ecs
             return *component;
         }
 
+        /// Swap-remove deletes one component without shifting the whole dense
+        /// array. It updates the moved entity's sparse reverse index; iteration
+        /// order changes, and references into the dense vector may be invalid.
+        /// Component move assignment is executed inside noexcept: component
+        /// types used here should provide non-throwing move operations.
         bool Remove(Entity entity) noexcept
         {
             if (!Contains(entity)) return false;
@@ -105,6 +122,8 @@ export namespace kairo::ecs
         /// Reserves dense component/entity storage. Sparse lookup growth remains
         /// entity-index driven, so reserving components never changes handle
         /// validity or allocates a speculative sparse table.
+        /// Reserve *dense* entity/component vectors for known population.
+        /// Sparse index storage is extended lazily by Emplace, not here.
         void Reserve(std::size_t capacity)
         {
             m_Entities.reserve(capacity);

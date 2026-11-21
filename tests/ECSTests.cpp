@@ -1,3 +1,5 @@
+// TEACHING FILE GUIDE: Catch2's TEST_CASE/REQUIRE/CHECK macros are test APIs, not ECS runtime APIs. REQUIRE aborts the current test on failure; CHECK accumulates failures. Each case below exercises an externally visible contract from Entity, SparseSet or Registry. Passing cases establish only tested behavior on the executed compiler/host.
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
@@ -14,6 +16,7 @@ namespace
     struct Health final { int Value = 100; };
 }
 
+// TEACHING TEST: Demonstrates generation counters preventing stale-handle resurrection after an entity slot is recycled.
 TEST_CASE("Registry invalidates stale entities before recycling slots", "[KairoECS][Entity]")
 {
     Registry registry;
@@ -30,6 +33,7 @@ TEST_CASE("Registry invalidates stale entities before recycling slots", "[KairoE
     CHECK(registry.EntityCount() == 1u);
 }
 
+// TEACHING TEST: Verifies component registration, typed lookup, duplicate insert rejection and removal error behavior.
 TEST_CASE("Sparse component storage validates ownership and removal", "[KairoECS][Components]")
 {
     Registry registry;
@@ -47,6 +51,7 @@ TEST_CASE("Sparse component storage validates ownership and removal", "[KairoECS
     REQUIRE_THROWS_AS(registry.Get<Position>(entity), std::out_of_range);
 }
 
+// TEACHING TEST: Prevents a stale sparse slot from being overwritten by a different generation before explicit removal.
 TEST_CASE("SparseSet rejects generations sharing an occupied sparse index", "[KairoECS][Components][Generation]")
 {
     // Direct SparseSet consumers can construct generational handles without
@@ -70,6 +75,7 @@ TEST_CASE("SparseSet rejects generations sharing an occupied sparse index", "[Ka
     CHECK(positions.Contains(newEntity));
 }
 
+// TEACHING TEST: Checks multi-component iteration and the sequencing/order contract for structural change records.
 TEST_CASE("Registry joins dense components and journals structural changes", "[KairoECS][Iteration][Journal]")
 {
     Registry registry(5u);
@@ -106,6 +112,7 @@ TEST_CASE("Registry joins dense components and journals structural changes", "[K
     CHECK(registry.StructuralChanges().empty());
 }
 
+// TEACHING TEST: Checks bounded journal retention and event sequence after preallocation and repeated mutations.
 TEST_CASE("Registry preallocated bounded journal preserves lifecycle and event order",
     "[KairoECS][Lifecycle][Journal]")
 {
@@ -138,6 +145,7 @@ TEST_CASE("Registry preallocated bounded journal preserves lifecycle and event o
     REQUIRE(registry.StructuralChanges().front().Sequence == 6u);
 }
 
+// TEACHING TEST: Checks automatic pool cleanup and that destroyed entity handles cannot change future ECS storage.
 TEST_CASE("Destroy removes every attached component and rejects stale mutation", "[KairoECS][Lifecycle]")
 {
     Registry registry;
@@ -151,6 +159,7 @@ TEST_CASE("Destroy removes every attached component and rejects stale mutation",
 }
 
 
+// TEACHING TEST: Exercises reserve and smallest-dense-pool query optimization for three-component systems.
 TEST_CASE("Registry reserves capacity and joins three components through the rarest pool", "[KairoECS][Iteration][Runtime]")
 {
     Registry registry;
@@ -189,6 +198,7 @@ TEST_CASE("Registry reserves capacity and joins three components through the rar
     CHECK(registry.Get<Health>(entities.front()).Value == 99);
 }
 
+// TEACHING TEST: Ensures join correctness regardless of which pool is smaller while preserving argument order.
 TEST_CASE("Two component joins are symmetric in population size but stable in callback order", "[KairoECS][Iteration]")
 {
     Registry registry;

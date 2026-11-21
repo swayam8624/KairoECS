@@ -1,3 +1,5 @@
+# TEACHING BUILD GUIDE: CMake declares four C++23 module units as the Kairo::ECS library API. Top-level builds may enable Catch2 tests and deterministic benchmark, while sibling-superbuild consumers can import the library without forcing optional test dependencies. FetchContent pins Catch2 v3.5.4; passing CTest verifies the host/compiler on which it was actually executed. Warning-as-error checks catch diagnostics but do not establish runtime correctness.
+
 cmake_minimum_required(VERSION 3.28)
 project(KairoECS VERSION 0.1.0 LANGUAGES CXX)
 

@@ -1,3 +1,4 @@
+// TEACHING FILE GUIDE: Entity is a value handle (slot index + generation), not a pointer or scene-graph object. Registry creates/destroys handles and SparseSet compares both fields to reject stale recycled slots. KairoEngineCore still owns authored scene identity and persistence.
 module;
 
 #include <cstdint>
@@ -17,6 +18,7 @@ export namespace kairo::ecs
         std::uint32_t Index = InvalidIndex;
         std::uint32_t Generation = 0u;
 
+        /// TEACHING METHOD: Checks only the sentinel index. Registry::IsAlive additionally checks generation and live-slot state; a syntactically valid Entity need not be alive.
         [[nodiscard]] constexpr bool IsValid() const noexcept { return Index != InvalidIndex; }
         friend constexpr bool operator==(const Entity&, const Entity&) noexcept = default;
     };

@@ -1,3 +1,4 @@
+// TEACHING MAP: The entity/component registry owns data-oriented runtime state, sparse-set membership and generation-safe entity access. EngineCore authored scenes and Physics/Renderer adapters remain separate consumers.
 module;
 
 #include <concepts>

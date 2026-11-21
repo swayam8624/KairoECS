@@ -1,3 +1,8 @@
+// TEACHING MAP — Registry.cppm
+// Owns entity generations, per-type component pools and structural-change history. Imports
+// Entity and SparseSet; EngineCore adapters manage separate persistent scene identity.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
+
 module;
 
 #include <concepts>

@@ -1,3 +1,9 @@
+// TEACHING MAP — SparseSet.cppm
+// Stores components densely with sparse entity lookup. Registry owns the pool, and
+// generation-aware Contains prevents stale recycled slots from yielding old component
+// values.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
+
 module;
 
 #include <cstddef>

@@ -1,3 +1,7 @@
+> **Learn the source:** [READING_ORDER.md](READING_ORDER.md) links all source/test files in a learning order and explains cross-repository APIs.
+>
+> **Open source:** Original KairoECS code is under [MIT](LICENSE), permitting learning, reuse and further development. External dependencies retain separate terms; the document is not evidence of complete per-function comments or integrated acceptance.
+
 # KairoECS
 
 `KairoECS` is the data-oriented runtime-storage foundation for Kairo. It is a

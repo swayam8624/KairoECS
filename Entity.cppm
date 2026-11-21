@@ -1,3 +1,9 @@
+// TEACHING MAP — Entity.cppm
+// Defines a process-local generational entity ID and structural-change records. Registry
+// owns entity lifetimes and validates generation before component access; SparseSet uses
+// Entity as lookup key. IsValid checks syntax, not live registry ownership.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
+
 module;
 
 #include <cstdint>

@@ -1,3 +1,9 @@
+// SOURCE STUDY NOTE:
+// Typed dense component storage indexed by sparse entity slots. Registry.cppm owns one pool per
+// component type, routes Emplace/Remove/Has, and uses dense iteration in joins. An erased element can
+// swap the last dense element into its position; avoid assuming component iteration order is stable.
+// Follow docs/SOURCE_READING_ORDER.md for the cross-file call path.
+
 module;
 
 #include <cstddef>

@@ -1,7 +1,7 @@
 // TEACHING MAP — Registry.cppm
-// oordinate pool lifetimes, while external EngineCore adapters preserve separate scene identity.
-// Follow READING_ORDER.md for API relationships, calling modules, and tests.
-// These are explanatory annotations, not additional runtime behavior.
+// Owns entity generations, per-type component pools and structural-change history. Imports
+// Entity and SparseSet; EngineCore adapters manage separate persistent scene identity.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
 
 module;
 

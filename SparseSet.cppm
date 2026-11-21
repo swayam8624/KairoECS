@@ -1,7 +1,8 @@
 // TEACHING MAP — SparseSet.cppm
-// reused entity slot returning a stale component. Removal changes dense ordering via compaction.
-// Follow READING_ORDER.md for API relationships, calling modules, and tests.
-// These are explanatory annotations, not additional runtime behavior.
+// Stores components densely with sparse entity lookup. Registry owns the pool, and
+// generation-aware Contains prevents stale recycled slots from yielding old component
+// values.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
 
 module;
 

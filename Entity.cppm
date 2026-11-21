@@ -1,3 +1,8 @@
+// TEACHING MAP — Entity.cppm
+// s Entity as lookup key. IsValid() checks syntax, not that the registry still owns this handle.
+// Follow READING_ORDER.md for API relationships, calling modules, and tests.
+// These are explanatory annotations, not additional runtime behavior.
+
 module;
 
 #include <cstdint>

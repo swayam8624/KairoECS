@@ -322,6 +322,7 @@ export namespace kairo::ecs
             }
         }
 
+        /// TEACHING METHOD: Copy the bounded mutation journal for tooling or deterministic diagnostics. It is not the complete authoritative entity history.
         [[nodiscard]] std::vector<StructuralChange> StructuralChanges() const { return m_Changes; }
         /// TEACHING METHOD: Discard retained journal entries after a consumer checkpoint; does not roll back ECS state or sequence numbering.
         void ClearStructuralChanges() noexcept { m_Changes.clear(); }
@@ -382,6 +383,7 @@ export namespace kairo::ecs
         }
 
         template<typename Component>
+        /// TEACHING METHOD: Locate the type-erased component pool for one C++ type without allocating a new pool.
         [[nodiscard]] Pool<Component>* FindPool() noexcept
         {
             const auto found = m_Pools.find(std::type_index(typeid(Component)));
@@ -389,6 +391,7 @@ export namespace kairo::ecs
         }
 
         template<typename Component>
+        /// TEACHING METHOD: Const lookup of an existing typed pool; callers cannot mutate the Registry through the result.
         [[nodiscard]] const Pool<Component>* FindPool() const noexcept
         {
             const auto found = m_Pools.find(std::type_index(typeid(Component)));

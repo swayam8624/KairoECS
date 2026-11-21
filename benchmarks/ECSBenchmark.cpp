@@ -1,7 +1,8 @@
 // TEACHING MAP — benchmarks/ECSBenchmark.cpp
-// ners before interpreting timings. It is not the game runtime or a pass/fail conformance suite.
-// Follow READING_ORDER.md for API relationships, calling modules, and tests.
-// These are explanatory annotations, not additional runtime behavior.
+// Benchmarks ECS insertion and iteration via public Registry APIs. Performance
+// measurements must use comparable workloads and correctness checks; they are not
+// conformance tests.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
 
 #include <chrono>
 #include <cstddef>

@@ -1,3 +1,8 @@
+// TEACHING MAP — Registry.cppm
+// oordinate pool lifetimes, while external EngineCore adapters preserve separate scene identity.
+// Follow READING_ORDER.md for API relationships, calling modules, and tests.
+// These are explanatory annotations, not additional runtime behavior.
+
 module;
 
 #include <concepts>

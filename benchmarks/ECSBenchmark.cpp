@@ -1,3 +1,8 @@
+// TEACHING MAP — benchmarks/ECSBenchmark.cpp
+// ners before interpreting timings. It is not the game runtime or a pass/fail conformance suite.
+// Follow READING_ORDER.md for API relationships, calling modules, and tests.
+// These are explanatory annotations, not additional runtime behavior.
+
 #include <chrono>
 #include <cstddef>
 #include <cstdint>

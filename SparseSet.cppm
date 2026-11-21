@@ -64,7 +64,7 @@ export namespace kairo::ecs
             return Contains(entity) ? &m_Components[m_Sparse[entity.Index]] : nullptr;
         }
 
-        /// TEACHING METHOD: Return nullable pointer to component without throwing when absent; pointer validity ends on vector reallocation or swap-removal.
+        /// TEACHING METHOD: Read-only nullable lookup; returns null for a stale generation or missing component and never permits mutation.
         [[nodiscard]] const Component* TryGet(Entity entity) const noexcept
         {
             return Contains(entity) ? &m_Components[m_Sparse[entity.Index]] : nullptr;
@@ -78,7 +78,7 @@ export namespace kairo::ecs
             return *component;
         }
 
-        /// TEACHING METHOD: Strict mutable lookup: throw on absence; client systems should check Has/TryGet for optional behavior.
+        /// TEACHING METHOD: Strict const lookup; throws on absence while preserving immutability of the returned component.
         const Component& Get(Entity entity) const
         {
             const Component* component = TryGet(entity);
@@ -122,7 +122,7 @@ export namespace kairo::ecs
         [[nodiscard]] const std::vector<Entity>& Entities() const noexcept { return m_Entities; }
         /// TEACHING METHOD: Expose contiguous component data for cache-friendly system iteration; do not mutate structure while iterating.
         [[nodiscard]] std::vector<Component>& Components() noexcept { return m_Components; }
-        /// TEACHING METHOD: Expose contiguous component data for cache-friendly system iteration; do not mutate structure while iterating.
+        /// TEACHING METHOD: Const dense component view for system iteration; structural changes can invalidate references even without direct mutation here.
         [[nodiscard]] const std::vector<Component>& Components() const noexcept { return m_Components; }
 
     private:

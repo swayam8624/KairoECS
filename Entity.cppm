@@ -1,7 +1,8 @@
 // TEACHING MAP — Entity.cppm
-// s Entity as lookup key. IsValid() checks syntax, not that the registry still owns this handle.
-// Follow READING_ORDER.md for API relationships, calling modules, and tests.
-// These are explanatory annotations, not additional runtime behavior.
+// Defines a process-local generational entity ID and structural-change records. Registry
+// owns entity lifetimes and validates generation before component access; SparseSet uses
+// Entity as lookup key. IsValid checks syntax, not live registry ownership.
+// See READING_ORDER.md for the complete module sequence, API interactions, and tests.
 
 module;
 

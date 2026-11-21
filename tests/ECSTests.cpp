@@ -1,3 +1,8 @@
+// TEACHING MAP — tests/ECSTests.cpp
+// c ECS API, not hidden internal allocations; running them is required to verify the assertions.
+// Follow READING_ORDER.md for API relationships, calling modules, and tests.
+// These are explanatory annotations, not additional runtime behavior.
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>

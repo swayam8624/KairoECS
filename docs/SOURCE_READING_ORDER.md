@@ -2,6 +2,8 @@
 
 Data-oriented entity storage, generational IDs and sparse-set component joins.
 
+**Start with the worked guide:** [Runtime entity handles, stale generations, sparse-set swap removal and safe joins](ECS_IDENTITY_AND_ITERATION.md).
+
 Follow source links sequentially. For each API/function, identify its input contract, owning data structure, called modules, failure modes, outputs, test and downstream consumers.
 
 ## Read in this order

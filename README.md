@@ -1,5 +1,7 @@
 # KairoECS
 
+**Study the implementation:** [linked source-reading order](docs/SOURCE_READING_ORDER.md) · [Process-local generational IDs, sparse storage and mutation boundaries](docs/ECS_IDENTITY_AND_ITERATION.md).
+
 **Study guide:** [ECS from first principles](docs/ECS_WALKTHROUGH.md) · [Complete source reading map](docs/SOURCE_READING_ORDER.md)
 
 `KairoECS` is the data-oriented runtime-storage foundation for Kairo. It is a

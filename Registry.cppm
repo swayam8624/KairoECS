@@ -1,4 +1,12 @@
-// TEACHING MAP: The entity/component registry owns data-oriented runtime state, sparse-set membership and generation-safe entity access. EngineCore authored scenes and Physics/Renderer adapters remain separate consumers.
+// TEACHING MAP: Registry owns generation-checked entity slots,
+ // per-component SparseSet pools and a bounded structural-change journal.
+ // It is process-local runtime storage, not a serialized authored Scene.
+ // Create/Destroy enforce generation retirement; Each joins scan the
+ // smallest matching dense pool and query other components by Entity.
+ // Mutation of a primary component during iteration can swap compact
+ // the pool and invalidate references; queue structural edits instead.
+ // KairoGameEngine::SceneECSMirror maps durable EngineCore Entity IDs
+ // onto these transient generation-based handles.
 module;
 
 #include <concepts>
@@ -45,6 +53,8 @@ export namespace kairo::ecs
         /// Output: a newly alive generational Entity. Task: recycle only slots
         /// whose generation cannot wrap, so stale handles never become valid.
         /// TEACHING METHOD: Allocate or recycle an entity slot, incrementing lifetime sequence and emitting Created. Stale handles are rejected by generation.
+        // Runtime index/generation identity is allocated here. It is
+        // distinct from the durable Scene Entity ID stored in a project.
         [[nodiscard]] Entity Create()
         {
             // Reserve the journal entry before changing the alive set. An
@@ -84,6 +94,9 @@ export namespace kairo::ecs
         /// The final generation is retired instead of wrapping to preserve the
         /// stale-handle invariant for the process lifetime.
         /// TEACHING METHOD: Reject stale handles, remove all owned components, record Destroyed and recycle a slot only when generation can safely advance.
+        // Remove every component, retire or advance the generation,
+        // and append a Destroyed journal event. Stale generation
+        // handles cannot address a subsequently recycled slot.
         bool Destroy(Entity entity)
         {
             if (!IsAlive(entity)) return false;
@@ -211,6 +224,8 @@ export namespace kairo::ecs
             return true;
         }
 
+        // Any mutation that swaps/removes the iterated component can
+        // invalidate its dense references and traversal length.
         /// Iterates a dense primary component pool. Precondition: the callback
         /// must not add/remove the primary component or destroy entities during
         /// this call, because those operations can reorder dense storage.

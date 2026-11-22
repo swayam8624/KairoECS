@@ -2,7 +2,7 @@
 
 **Study the implementation:** [linked source-reading order](docs/SOURCE_READING_ORDER.md) · [Process-local generational IDs, sparse storage and mutation boundaries](docs/ECS_IDENTITY_AND_ITERATION.md).
 
-**Study guide:** [ECS from first principles](docs/ECS_WALKTHROUGH.md) · [Complete source reading map](docs/SOURCE_READING_ORDER.md)
+**Worked source lab:** [Generational handles, sparse-set compaction, smallest-pool joins and bounded journals](docs/GENERATIONS_SPARSE_JOIN_AND_STRUCTURAL_JOURNAL_LAB.md) · [ECS from first principles](docs/ECS_WALKTHROUGH.md)
 
 `KairoECS` is the data-oriented runtime-storage foundation for Kairo. It is a
 standalone C++23 module library: it has no windowing, renderer, physics, scene

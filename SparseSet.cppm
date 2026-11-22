@@ -1,4 +1,20 @@
-// TEACHING FILE GUIDE: Dense per-component storage with sparse entity-index lookup. Entity.Index locates a sparse slot; matching Entity.Generation guards against recycled handles. Registry allocates a SparseSet per component type; tests exercise presence, reallocation and swap-removal semantics. Removing one component can move the last dense component and invalidate references/iterators.
+// TEACHING MODULE: SparseSet<Component> uses two vectors for dense Entity
+// and Component storage plus a sparse slot-index -> dense-index table.
+// Matching the full (index,generation) Entity prevents recycled slots
+// from seeing old components. Lookups are constant-time after checking
+// bounds, but dense iteration order changes on swap-remove.
+//
+// Emplace constructs dense data before publishing the sparse index, so
+// a throwing Component constructor does not leave a published ghost.
+// Remove is declared noexcept yet move-assigns Component in the swap
+// path; if that Component move assignment can throw, termination is
+// possible. Restrict/remove with noexcept-movable component types or
+// test a revised exception policy separately from this docs pass.
+//
+// Registry owns one storage pool per component type and exposes joins.
+// Never keep Component* or references across mutations, vector growth
+// or swap-removal. Tests/ECSTests.cpp should enforce these guarantees.
+
 module;
 
 #include <cstddef>
@@ -87,6 +103,9 @@ export namespace kairo::ecs
         }
 
         /// TEACHING METHOD: Swap the last dense entry into the removed slot to keep contiguous storage; update moved entity's sparse index. Order changes and references can be invalidated. Current noexcept requires care if Component move assignment may throw.
+        // Swap-delete compacts the dense array but invalidates references
+        // to moved components and changes iteration order. The noexcept
+        // signature assumes Component's move assignment cannot throw.
         bool Remove(Entity entity) noexcept
         {
             if (!Contains(entity)) return false;

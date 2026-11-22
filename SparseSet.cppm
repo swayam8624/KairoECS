@@ -39,6 +39,9 @@ export namespace kairo::ecs
     {
     public:
         /// TEACHING METHOD: O(1) membership test, verifying both dense index and full generational Entity equality. An old handle cannot see a new entity's component.
+        // A sparse lookup is not enough: m_Sparse[Index] gives a dense location but
+        // the stored Entity must have *the same generation*. Otherwise a recycled
+        // slot could see the previous occupant's Component.
         [[nodiscard]] bool Contains(Entity entity) const noexcept
         {
             if (!entity.IsValid() || entity.Index >= m_Sparse.size()) return false;
@@ -48,6 +51,9 @@ export namespace kairo::ecs
 
         template<typename... Arguments>
         /// TEACHING METHOD: Add a component for a currently unoccupied slot; construct in dense storage then publish sparse map entry. Registry checks entity life before calling.
+        // Write an Entity into the dense list, try constructing its Component, and
+        // only then publish the sparse back-reference. Failure rolls back the Entity
+        // push; Registry must have verified the handle was alive.
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
             if (!entity.IsValid()) throw std::invalid_argument("Cannot attach a component to an invalid entity.");
@@ -57,6 +63,9 @@ export namespace kairo::ecs
             // different generation would otherwise bypass that check and
             // overwrite the sparse lookup, leaving a permanently unreachable
             // dense component behind. Require explicit removal before reuse.
+            // Reject an occupied *index* even when Contains returned false due to a
+            // different generation. Without this guard, a new insertion would overwrite
+            // the sparse pointer and orphan an old dense component.
             if (m_Sparse[entity.Index] != Missing)
                 throw std::invalid_argument("SparseSet entity index is still occupied by another generation.");
             const std::uint32_t dense = CheckedDenseIndex();
@@ -106,6 +115,10 @@ export namespace kairo::ecs
         // Swap-delete compacts the dense array but invalidates references
         // to moved components and changes iteration order. The noexcept
         // signature assumes Component's move assignment cannot throw.
+        // Swap last dense Entity/Component into removed slot, update the moved
+        // Entity's sparse pointer, then pop both dense vectors and mark removed
+        // sparse index Missing. Iteration order/pointers change; Component
+        // move-assign must not throw or noexcept will terminate.
         bool Remove(Entity entity) noexcept
         {
             if (!Contains(entity)) return false;
@@ -127,6 +140,9 @@ export namespace kairo::ecs
         /// entity-index driven, so reserving components never changes handle
         /// validity or allocates a speculative sparse table.
         /// TEACHING METHOD: Reserve dense entity/component array capacity to reduce allocations; reservation itself can move previously returned component references.
+        // Reserve capacity for dense entities and components only. Vector
+        // reallocation can invalidate returned references, although it does not
+        // change a generational handle or allocate sparse entries.
         void Reserve(std::size_t capacity)
         {
             m_Entities.reserve(capacity);
@@ -151,12 +167,18 @@ export namespace kairo::ecs
         std::vector<Component> m_Components;
 
         /// TEACHING METHOD: Extend sparse index table on demand with Missing sentinels, leaving dense storage unchanged.
+        // Resize sparse table to hold the requested Entity index, initializing new
+        // positions with Missing. The table maps *slots* to dense indexes, not a
+        // generation-independent existence guarantee.
         void EnsureSparseIndex(std::uint32_t index)
         {
             if (index >= m_Sparse.size()) m_Sparse.resize(static_cast<std::size_t>(index) + 1u, Missing);
         }
 
         /// TEACHING METHOD: Verify dense storage can be represented by the 32-bit sparse slot encoding before insertion.
+        // Dense indexes are uint32_t with UINT32_MAX reserved as Missing. Check count
+        // before casting; overrun would make a valid dense component
+        // indistinguishable from an empty sparse slot.
         [[nodiscard]] std::uint32_t CheckedDenseIndex() const
         {
             if (m_Entities.size() >= Missing) throw std::length_error("SparseSet reached its dense-index limit.");

@@ -6,6 +6,8 @@ Data-oriented entity storage, generational IDs and sparse-set component joins.
 
 Follow source links sequentially. For each API/function, identify its input contract, owning data structure, called modules, failure modes, outputs, test and downstream consumers.
 
+**Exercise-based deep dive:** [Trace a stale generation, swap-remove, a two-component query and the bounded mutation journal](GENERATIONS_SPARSE_JOIN_AND_STRUCTURAL_JOURNAL_LAB.md). This also links the one-way SceneECSMirror consumer in KairoGameEngine.
+
 ## Read in this order
 
 1. [`CMakeLists.txt`](../CMakeLists.txt)

@@ -68,7 +68,7 @@ It then checks the other component with a generation-validated sparse lookup, so
 
 The three-component join extends this rule to the smallest of three pools. Its cost is proportional to the smallest pool's size times two checks, plus matched callbacks, rather than a full Cartesian product.
 
-\`\`\`cpp
+```cpp
 // Called once per fixed simulation update after structural commands
 // have been applied. The callback changes component *values* only.
 registry.Each<Position, Velocity>(
@@ -80,7 +80,7 @@ registry.Each<Position, Velocity>(
         // Do not call Destroy(entity) or Remove<Velocity>(entity)
         // here: swapping dense vectors can invalidate this traversal.
     });
-\`\`\`
+```
 
 **Exercise:** add a third rare PlayerControlled component and compare the number of primary iterations for Each<Position,Velocity,PlayerControlled> with iteration over every Entity followed by three lookups. Use a correctness oracle of matched Entity ID sets, not timing alone.
 

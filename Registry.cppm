@@ -55,6 +55,9 @@ export namespace kairo::ecs
         /// TEACHING METHOD: Allocate or recycle an entity slot, incrementing lifetime sequence and emitting Created. Stale handles are rejected by generation.
         // Runtime index/generation identity is allocated here. It is
         // distinct from the durable Scene Entity ID stored in a project.
+        // Allocate an ECS slot either from the free list or by extending the arrays.
+        // Reserve a structural journal slot first, so an allocation failure cannot
+        // expose a live but unreported entity. EngineCore authored IDs remain separate.
         [[nodiscard]] Entity Create()
         {
             // Reserve the journal entry before changing the alive set. An
@@ -97,6 +100,9 @@ export namespace kairo::ecs
         // Remove every component, retire or advance the generation,
         // and append a Destroyed journal event. Stale generation
         // handles cannot address a subsequently recycled slot.
+        // Validate full generation, strip components from every type-erased pool and
+        // append Destroyed. Increment generation before slot reuse; slots at UINT32_MAX
+        // are permanently retired to prevent stale-handle revival.
         bool Destroy(Entity entity)
         {
             if (!IsAlive(entity)) return false;
@@ -119,6 +125,8 @@ export namespace kairo::ecs
         }
 
         /// TEACHING METHOD: Require valid index, live bitmap and matching generation; Entity::IsValid alone is insufficient.
+        // A non-sentinel Entity index is not proof of life. Check index bounds, alive
+        // bitmap and generation equality before returning or mutating components.
         [[nodiscard]] bool IsAlive(Entity entity) const noexcept
         {
             return entity.IsValid() && entity.Index < m_Generations.size() &&
@@ -159,6 +167,9 @@ export namespace kairo::ecs
 
         template<typename Component, typename... Arguments>
         /// TEACHING METHOD: Require live Entity, insert into type-specific SparseSet and record ComponentAdded after successful construction.
+        // Require a live generation, reserve journal space, then construct the
+        // Component in its SparseSet. Publish ComponentAdded only after construction
+        // succeeds; the journal does not serialize component data.
         Component& Emplace(Entity entity, Arguments&&... arguments)
         {
             RequireAlive(entity);
@@ -213,6 +224,9 @@ export namespace kairo::ecs
 
         template<typename Component>
         /// TEACHING METHOD: Remove only a component from a live Entity, journaling structural change; entity itself remains alive.
+        // Remove just this Component, not its Entity. Dense swap-removal may relocate
+        // an unrelated component and invalidate pointers held by iteration; defer such
+        // mutations until after system callbacks.
         bool Remove(Entity entity)
         {
             if (!IsAlive(entity)) return false;
@@ -232,6 +246,9 @@ export namespace kairo::ecs
         template<typename Component, typename Callable>
             requires std::invocable<Callable&, Entity, Component&>
         /// TEACHING METHOD: Join component pools for system updates. The single/two/three-component versions iterate dense data and use sparse lookup for other requirements; never add/remove matching components inside callback.
+        // Single component Each: capture the dense pool length and iterate
+        // Entity+Component in lockstep. Do not remove/insert that type or destroy
+        // entities in callback: swap-removal and vector growth invalidate references.
         void Each(Callable&& callable)
         {
             Pool<Component>* pool = FindPool<Component>();
@@ -253,12 +270,18 @@ export namespace kairo::ecs
         template<typename First, typename Second, typename Callable>
             requires std::invocable<Callable&, Entity, First&, Second&>
         /// TEACHING METHOD: Join component pools for system updates. The single/two/three-component versions iterate dense data and use sparse lookup for other requirements; never add/remove matching components inside callback.
+        // Two component Each: pool selection below keeps the smaller side as outer
+        // iteration; Has/TryGet safeguards the other side. Avoid structural mutations
+        // of either pool during callback.
         void Each(Callable&& callable)
         {
             Pool<First>* first = FindPool<First>();
             Pool<Second>* second = FindPool<Second>();
             if (first == nullptr || second == nullptr) return;
 
+            // For two-component joins, scan the smaller dense pool, then probe the other
+            // via generation-checked sparse lookup. Callback arguments stay First,Second
+            // regardless of chosen driving pool.
             if (first->Set.Size() <= second->Set.Size())
             {
                 const auto& entities = first->Set.Entities();
@@ -288,6 +311,9 @@ export namespace kairo::ecs
         template<typename First, typename Second, typename Third, typename Callable>
             requires std::invocable<Callable&, Entity, First&, Second&, Third&>
         /// TEACHING METHOD: Join component pools for system updates. The single/two/three-component versions iterate dense data and use sparse lookup for other requirements; never add/remove matching components inside callback.
+        // Three component Each: the smallest of three pools becomes the driver while
+        // the other two use sparse checked lookup. Dynamic component mutation in
+        // callback can corrupt traversal assumptions.
         void Each(Callable&& callable)
         {
             Pool<First>* first = FindPool<First>();
@@ -295,6 +321,9 @@ export namespace kairo::ecs
             Pool<Third>* third = FindPool<Third>();
             if (first == nullptr || second == nullptr || third == nullptr) return;
 
+            // For three-component joins, choose the smallest of three dense pools and probe
+            // the other two; this reduces scans when one component type is rare, while
+            // retaining template argument order.
             if (first->Set.Size() <= second->Set.Size() && first->Set.Size() <= third->Set.Size())
             {
                 const auto& entities = first->Set.Entities();
@@ -373,6 +402,9 @@ export namespace kairo::ecs
         }
 
         /// TEACHING METHOD: Reserve capacity before mutations so allocation failure occurs before partially applying a state change.
+        // Prepare journal allocation before a structural mutation. Retained history is
+        // bounded; older events may be evicted and cannot provide lossless replay when
+        // consumers lag behind.
         void ReserveJournalSlot()
         {
             // Reserve before each structural mutation, not afterward. When the
@@ -391,6 +423,9 @@ export namespace kairo::ecs
         }
 
         /// TEACHING METHOD: Add monotonic sequence ID and mutation type; retain only bounded recent history, dropping oldest records when full.
+        // Append monotonic sequence, kind, and Entity identity, not a serialized
+        // before/after component snapshot. The bounded journal is a
+        // diagnostic/change-notification channel.
         void AppendChange(StructuralChangeKind kind, Entity entity)
         {
             if (m_Changes.size() == m_JournalCapacity) m_Changes.erase(m_Changes.begin());
@@ -415,6 +450,9 @@ export namespace kairo::ecs
 
         template<typename Component>
         /// TEACHING METHOD: Create a new per-type SparseSet lazily, maintaining type map and iterable storage list with exception rollback.
+        // Lazy component-pool construction uses process-local RTTI. If insertion into
+        // owning m_Pools fails, undo the pointer added to m_Storages. RTTI identifiers
+        // must not become persisted schema keys.
         Pool<Component>& FindOrCreatePool()
         {
             if (Pool<Component>* existing = FindPool<Component>(); existing != nullptr) return *existing;

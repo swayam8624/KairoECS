@@ -1,4 +1,17 @@
-// TEACHING FILE GUIDE: Entity is a value handle (slot index + generation), not a pointer or scene-graph object. Registry creates/destroys handles and SparseSet compares both fields to reject stale recycled slots. KairoEngineCore still owns authored scene identity and persistence.
+// TEACHING MODULE: KairoECS::Entity is a *process-local generation-checked
+// slot handle*, not an authored EngineCore::Entity or a world-space object.
+// Registry creates/recycles slots; a destroyed slot's generation advances
+// so old references cannot accidentally access a newly allocated entity.
+//
+// Entity::IsValid checks only the sentinel index; Registry::IsAlive also
+// checks generation and active-slot bitmap. SparseSet retains the complete
+// Entity alongside dense components for that same check. SceneECSMirror in
+// KairoGameEngine preserves authored identity in a dedicated component;
+// never serialize ECS index/generation as a durable .kscene identity.
+//
+// StructuralChange is an opaque journal event for tooling, not a
+// replayable serialized component snapshot.
+
 module;
 
 #include <cstdint>
